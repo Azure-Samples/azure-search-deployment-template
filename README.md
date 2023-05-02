@@ -1,4 +1,4 @@
-# Bicep deployment of Azure Cognitive Search for business continuity and disaster recovery
+# Bicep deployment of Azure Cognitive Search
 
 This repository contains a template that deploys Azure Cognitive Search and automatically creates an index, data source, and indexer.
 
