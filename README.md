@@ -12,10 +12,10 @@ Azure Cognitive Search is configured with [Azure Cosmos DB NoSQL](https://learn.
 
 The [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) script creates the following resources:
 
-1. An [Azure Cosmos DB NoSQL](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql) account.
-1. An [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-what-is-azure-search) service
-1. A [User-Assigned Managed Identity](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/overview). This is combined with [role-based access control](https://learn.microsoft.com/azure/search/search-security-rbac) to allow automatic deployment of an [index](https://learn.microsoft.com/azure/search/search-what-is-an-index), [data source](https://learn.microsoft.com/azure/search/search-indexer-overview), and [indexer](https://learn.microsoft.com/azure/search/search-indexer-overview) to the search service.
-1. A [deployment script](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-script-template) which enables the Bicep template to use the [REST API](https://learn.microsoft.com/rest/api/searchservice/) to configure the search service.
++ An [Azure Cosmos DB NoSQL](https://learn.microsoft.com/azure/cosmos-db/try-free?tabs=nosql) account.
++ An [Azure Cognitive Search](https://learn.microsoft.com/azure/search/search-what-is-azure-search) service
++ A [User-Assigned Managed Identity](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/overview). This is combined with [role-based access control](https://learn.microsoft.com/azure/search/search-security-rbac) to allow automatic deployment of an [index](https://learn.microsoft.com/azure/search/search-what-is-an-index), [data source](https://learn.microsoft.com/azure/search/search-indexer-overview), and [indexer](https://learn.microsoft.com/azure/search/search-indexer-overview) to the search service.
++ A [deployment script](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-script-template) which enables the Bicep template to use the [REST API](https://learn.microsoft.com/rest/api/searchservice/) to configure the search service.
 
 ![Bicep Diagram](./media/BicepDiagram.png)
 
@@ -57,15 +57,15 @@ The [Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overv
 
 ## Run the sample
 
-Import data from Cosmos DB NoSQL automatically to a search service using an[indexer](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb).
+The deployment imports data from Cosmos DB NoSQL into a search index on a search service using an [indexer](https://learn.microsoft.com/azure/search/search-howto-index-cosmosdb).
 
 For synchronization, this sample uses a scheduled [indexer to pull data into a search index](https://learn.microsoft.com/azure/search/search-what-is-data-import#pulling-data-into-an-index). On the search service, the indexer runs at a 5 minute interval. A 5-minute interval is considered the minimum for indexer schedules.
 
 ![Cosmos DB Indexer Sync Architecture](./media/IndexerSyncArchitecture%20-%20SingleService.png)
 
-1. From the command line tool, navigate to the `bicep` directory in the sample.
+1. From the command line, navigate to the `bicep` directory in the sample.
 
-1. Optionally, review the bicep file (cosmosdb-indexer-sync.bicep) or parameters file (cosmosdb-indexer-sync.parameters.json). Feel free to change attributes such as the SKU.
+1. Optionally, review the bicep file (cosmosdb-indexer-sync.bicep) or parameters file (cosmosdb-indexer-sync.parameters.json). Feel free to change attributes such as the SKU (tier).
 
 1. Run the next CLI command to create the Cosmos DB account, database, and search resource:
 
@@ -73,9 +73,61 @@ For synchronization, this sample uses a scheduled [indexer to pull data into a s
    az deployment group create --resource-group <YOUR-RESOURCE-GROUP> --template-file cosmosdb-indexer-sync.bicep --mode Incremental --parameters @cosmosdb-indexer-sync.parameters.json
    ```
 
-It takes several minutes to deploy all of the resources.
+You can use the same resource group you created earlier (demoResourceGroup). It takes several minutes to deploy all of the resources. The script outputs status to the command line once everything is deployed. The following output is trimmed for brevity.
 
-The indexer is configured to use the built-in ToDo sample database. To test the deployment, add a few items to the built-in sample ToDo database on Cosmos DB. Wait for five minutes, and then check the indexes in the search services. You should see the newly added content.
+```bash
+{
+  "id": "/subscriptions/000000000000000000000000000000000/resourceGroups/demoResourceGroup/providers/Microsoft.Resources/deployments/cosmosdb-indexer-sync",
+  "location": null,
+  "name": "cosmosdb-indexer-sync",
+  "properties": {
+    "correlationId": "ecbecc70-c3f4-476c-b5a1-e804f3489775",
+    "debugSetting": null,
+    "dependencies": [
+      {
+        "dependsOn": [
+          {
+            "id": "/subscriptions/00000000000000000000000/resourceGroups/demoResourceGroup/providers/Microsoft.DocumentDB/databaseAccounts/wmada6ilf3yneaccount",
+            "resourceGroup": "demoResourceGroup",
+            "resourceName": "wmada6ilf3yneaccount",
+            "resourceType": "Microsoft.DocumentDB/databaseAccounts"
+          }
+        ],
+. . . 
+    "provisioningState": "Succeeded",
+    "templateHash": "9404979489974435321",
+    "templateLink": null,
+    "timestamp": "2023-06-29T17:33:03.504780+00:00",
+    "validatedResources": null
+  },
+  "resourceGroup": "demoResourceGroup",
+  "tags": null,
+  "type": "Microsoft.Resources/deployments"
+}
+```
+
+## Test the deployment
+
+The indexer is configured to use the built-in Cosmos DB ToDo sample database. To test the deployment:
+
+1. Navigate to the demoResourceGroup to find the Cosmos DB and search resource.
+
+1. In search, verify the index, indexer, data source are created and that the index has zero documents.
+
+1. In Cosmos DB, use Data Explorer to add a few items to the built-in sample ToDo database. The ToDo database has an "id" field and metadata. The search index on Azure Cognitive Search has two fields ("rid", "description"). 
+
+   + The "rid" field in the search index is populated from the _rid metadata field that's autopopulated in Cosmos DB.
+
+   + For "description, add a "description" in each ToDo item that you add in Cosmos DB. Note that the "id" field isn't used in this sample.
+
+     ```json
+     {
+        "id": "first",
+        "description": "hello world"
+     }
+     ```
+
+1. Wait for five minutes, and then check the indexes in the search services. You should see the newly added content.
 
 ## Sample clean up
 
