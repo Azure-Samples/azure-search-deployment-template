@@ -8,7 +8,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $apiversion = '2020-06-30'
-$token = Get-AzAccessToken -ResourceUrl https://search.azure.com | select -expand Token
+$tokenSecured = Get-AzAccessToken -ResourceUrl https://search.azure.com
+$token=ConvertFrom-SecureString $tokenSecured.token -AsPlainText
 $headers = @{ 'Authorization' = "Bearer $token"; 'Content-Type' = 'application/json'; }
 $uri = "https://$searchServiceName.search.windows.net"
 $indexDefinition = $null
